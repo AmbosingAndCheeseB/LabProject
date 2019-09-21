@@ -87,13 +87,13 @@ def build_CNN_classifier(x):
   b_conv1 = tf.Variable(tf.constant(0.1, shape=[512]))
   h_conv1 = tf.nn.relu(tf.nn.conv2d(x_image, W_conv1, strides=[1, 1, 1, 1], padding='SAME') + b_conv1)
 
-  h_pool1 = tf.nn.max_pool(h_conv1, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
+  h_pool1 = tf.nn.max_pool(h_conv1, ksize=[1, 4, 4, 1], strides=[1, 4, 4, 1], padding='SAME')
 
   W_conv2 = tf.Variable(tf.truncated_normal(shape=[5, 5, 512, 256], stddev=5e-2))
   b_conv2 = tf.Variable(tf.constant(0.1, shape=[256]))
   h_conv2 = tf.nn.relu(tf.nn.conv2d(h_pool1, W_conv2, strides=[1, 1, 1, 1], padding='SAME') + b_conv2)
 
-  h_pool2 = tf.nn.max_pool(h_conv2, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
+  h_pool2 = tf.nn.max_pool(h_conv2, ksize=[1, 4, 4, 1], strides=[1, 4, 4, 1], padding='SAME')
 
   W_conv3 = tf.Variable(tf.truncated_normal(shape=[5, 5, 256, 128], stddev=5e-2))
   b_conv3 = tf.Variable(tf.constant(0.1, shape=[128]))
@@ -107,10 +107,10 @@ def build_CNN_classifier(x):
 
   h_pool4 = tf.nn.max_pool(h_conv4, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
 
-  W_fc1 = tf.Variable(tf.truncated_normal(shape=[20*15*64, 1024], stddev=5e-2))
+  W_fc1 = tf.Variable(tf.truncated_normal(shape=[5*4*64, 1024], stddev=5e-2))
   b_fc1 = tf.Variable(tf.constant(0.1, shape=[1024]))
 
-  h_pool2_flat = tf.reshape(h_pool4, [-1, 20*15*64])
+  h_pool2_flat = tf.reshape(h_pool4, [-1, 5*4*64])
   h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
   W_fc2 = tf.Variable(tf.truncated_normal(shape=[1024, 512], stddev=5e-2))
