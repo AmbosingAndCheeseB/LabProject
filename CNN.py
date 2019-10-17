@@ -23,7 +23,7 @@ print(test_label, test_label.shape)
 test_label = test_label[:, np.newaxis]
 
 def img_data(path):
-  image = img.open('./'+path+'/1.jpg')
+  image = img.open('./'+path+'/1.png')
 
   x = np.array(image)
   temp1 = np.array(image)
@@ -35,7 +35,7 @@ def img_data(path):
 
   for i in range(2, num):
     try:
-      im = img.open('./'+path+'/' + str(i) + '.jpg')
+      im = img.open('./'+path+'/' + str(i) + '.png')
       temp = np.array(im)
       temp = temp.astype('float32')
       temp = np.divide(temp, 255)
@@ -54,13 +54,13 @@ def img_data(path):
 data = img_data("resized(temp)")
 test_data = img_data("test_image(temp)")
 
-test_data_ = tf.reshape(test_data, [-1, 320*240*3])
+test_data_ = tf.reshape(test_data, [-1, 48*64*4])
 
 print("행렬 합친 후:", data.shape)
 
-data_ = tf.reshape(data, [-1, 320*240*3])
+data_ = tf.reshape(data, [-1, 48*64*4])
 print(data_)
-temp_data = tf.reshape(data_, [-1, 320, 240, 3])
+temp_data = tf.reshape(data_, [-1, 64, 48, 4])
 print(temp_data.shape)
 
 
@@ -77,13 +77,13 @@ dataset2 = tf.data.Dataset.from_tensor_slices(({"image" : test_data_}, test_labe
 dataset2 = dataset2.batch(batch_size).repeat()
 
 iterator2 = dataset2.make_one_shot_iterator()
-next_data2 = iterator2.get_next()
+next_data2 = iterator.get_next()
 
 
 def build_CNN_classifier(x):
-  x_image = tf.reshape(x, [-1, 320, 240, 3])
+  x_image = tf.reshape(x, [-1, 64, 48, 4])
 
-  W_conv1 = tf.Variable(tf.truncated_normal(shape=[5, 5, 3, 512], stddev=5e-2))
+  W_conv1 = tf.Variable(tf.truncated_normal(shape=[5, 5, 4, 512], stddev=5e-2))
   b_conv1 = tf.Variable(tf.constant(0.1, shape=[512]))
   h_conv1 = tf.nn.relu(tf.nn.conv2d(x_image, W_conv1, strides=[1, 1, 1, 1], padding='SAME') + b_conv1)
 
@@ -107,10 +107,10 @@ def build_CNN_classifier(x):
 
   h_pool4 = tf.nn.max_pool(h_conv4, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
 
-  W_fc1 = tf.Variable(tf.truncated_normal(shape=[20*15*64, 1024], stddev=5e-2))
+  W_fc1 = tf.Variable(tf.truncated_normal(shape=[3*4*64, 1024], stddev=5e-2))
   b_fc1 = tf.Variable(tf.constant(0.1, shape=[1024]))
 
-  h_pool2_flat = tf.reshape(h_pool4, [-1, 20*15*64])
+  h_pool2_flat = tf.reshape(h_pool4, [-1, 3*4*64])
   h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
   W_fc2 = tf.Variable(tf.truncated_normal(shape=[1024, 512], stddev=5e-2))
@@ -123,26 +123,25 @@ def build_CNN_classifier(x):
 
   h_fc3 = tf.nn.relu(tf.matmul(h_fc2, W_fc3) + b_fc3)
 
-  W_output = tf.Variable(tf.truncated_normal(shape=[256, 1], stddev=5e-2))
-  b_output = tf.Variable(tf.constant(0.1, shape=[1]))
+  W_output = tf.Variable(tf.truncated_normal(shape=[256, 2], stddev=5e-2))
+  b_output = tf.Variable(tf.constant(0.1, shape=[2]))
 
   logits = tf.matmul(h_fc3, W_output) + b_output
 
-  logits = tf.sigmoid(logits)
 
   return logits
 
 
-x = tf.placeholder(tf.float32, shape=[None, 320*240*3])
-y = tf.placeholder(tf.float32, shape=[None, 1])
+x = tf.placeholder(tf.float32, shape=[None, 48*64*4])
+y = tf.placeholder(tf.float32, shape=[None, 2])
 
 
 y_pred = build_CNN_classifier(x)
 
+y_soft = tf.nn.softmax(y_pred)
 
-
-loss = tf.reduce_mean(tf.square(y-y_pred))
-train_step = tf.train.AdamOptimizer(5e-8).minimize(loss)
+loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=y_pred, labels = y))
+train_step = tf.train.AdamOptimizer(1e-6).minimize(loss)
 
 tf.summary.scalar('loss', loss)
 
@@ -188,27 +187,12 @@ with tf.Session() as sess:
   num = 0
 
   for j in range(10):
-    batch_X, batch_Y = sess.run(next_data2)
+    batch_X, batch_Y = sess.run(next_data)
     #print(batch_X, batch_Y)
     batch_Y = batch_Y[0, :]
-    print(batch_Y)
-
-    _, y_sig = sess.run([train_step, y_pred], feed_dict={x: batch_X['image'], y: batch_Y})
-    print(y_sig)
-
-    num += 1
-
-    ans = batch_Y[0, :]
-    pred = y_sig[0, :]
-
-    if( ans == 0):
-      if(pred < 0.2):
-        count += 1
-
-    else:
-      if(pred > 0.8):
-        count +=1
-
-  print("정확도 : %f" %(count/num))
-
-
+    # print(batch_Y)
+    correct_pred = tf.equal(tf.argmax(y_pred, 1), tf.argmax(y,1))
+    accuracy = tf.reduce_mean(tf.cast(correct_pred, "float"))
+    print("정확도(Accuracy): %f" % (accuracy.eval(feed_dict={x:batch_X['image'], y:batch_Y})))
+    _, y_soft = sess.run([train_step, y_soft], feed_dict={x: batch_X['image'], y: batch_Y})
+    print(y_soft)
