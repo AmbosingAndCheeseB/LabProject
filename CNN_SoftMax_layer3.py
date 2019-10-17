@@ -84,54 +84,39 @@ def build_CNN_classifier(x):
   x_image = tf.reshape(x, [-1, 320, 240, 3])
 
   #이미지 크기: 320 * 240 * 3
-  W_conv1 = tf.Variable(tf.truncated_normal(shape=[5, 5, 3, 512], stddev=5e-2))
-  b_conv1 = tf.Variable(tf.constant(0.1, shape=[512]))
+  W_conv1 = tf.Variable(tf.truncated_normal(shape=[5, 5, 3, 256], stddev=5e-2))
+  b_conv1 = tf.Variable(tf.constant(0.1, shape=[256]))
   h_conv1 = tf.nn.relu(tf.nn.conv2d(x_image, W_conv1, strides=[1, 1, 1, 1], padding='SAME') + b_conv1)
 
   h_pool1 = tf.nn.max_pool(h_conv1, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
 
   #이미지 크기: 160 * 120 * 512
-  W_conv2 = tf.Variable(tf.truncated_normal(shape=[5, 5, 512, 256], stddev=5e-2))
-  b_conv2 = tf.Variable(tf.constant(0.1, shape=[256]))
+  W_conv2 = tf.Variable(tf.truncated_normal(shape=[5, 5, 256, 128], stddev=5e-2))
+  b_conv2 = tf.Variable(tf.constant(0.1, shape=[128]))
   h_conv2 = tf.nn.relu(tf.nn.conv2d(h_pool1, W_conv2, strides=[1, 1, 1, 1], padding='SAME') + b_conv2)
 
   h_pool2 = tf.nn.max_pool(h_conv2, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
 
   #이미지 크기: 80 * 60 * 256
-  W_conv3 = tf.Variable(tf.truncated_normal(shape=[5, 5, 256, 128], stddev=5e-2))
-  b_conv3 = tf.Variable(tf.constant(0.1, shape=[128]))
+  W_conv3 = tf.Variable(tf.truncated_normal(shape=[5, 5, 128, 64], stddev=5e-2))
+  b_conv3 = tf.Variable(tf.constant(0.1, shape=[64]))
   h_conv3 = tf.nn.relu(tf.nn.conv2d(h_pool2, W_conv3, strides=[1, 1, 1, 1], padding='SAME') + b_conv3)
 
   h_pool3 = tf.nn.max_pool(h_conv3, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
 
-  #이미지 크기: 40 * 30 * 128
-  W_conv4 = tf.Variable(tf.truncated_normal(shape=[5, 5, 128, 64], stddev=5e-2))
-  b_conv4 = tf.Variable(tf.constant(0.1, shape=[64]))
-  h_conv4 = tf.nn.relu(tf.nn.conv2d(h_pool3, W_conv4, strides=[1, 1, 1, 1], padding='SAME') + b_conv4)
 
-  h_pool4 = tf.nn.max_pool(h_conv4, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
-
-  #이미지 크기: 20 * 15 * 64
-  W_fc1 = tf.Variable(tf.truncated_normal(shape=[20*15*64, 1024], stddev=5e-2))
+  #이미지 크기: 40 * 30 * 64
+  W_fc1 = tf.Variable(tf.truncated_normal(shape=[40*30*64, 1024], stddev=5e-2))
   b_fc1 = tf.Variable(tf.constant(0.1, shape=[1024]))
 
-  h_pool2_flat = tf.reshape(h_pool4, [-1, 20*15*64])
+  h_pool2_flat = tf.reshape(h_pool3, [-1, 40*30*64])
   h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
-  W_fc2 = tf.Variable(tf.truncated_normal(shape=[1024, 512], stddev=5e-2))
-  b_fc2 = tf.Variable(tf.constant(0.1, shape=[512]))
 
-  h_fc2 = tf.nn.relu(tf.matmul(h_fc1, W_fc2) + b_fc2)
-
-  W_fc3 = tf.Variable(tf.truncated_normal(shape=[512, 256], stddev=5e-2))
-  b_fc3 = tf.Variable(tf.constant(0.1, shape=[256]))
-
-  h_fc3 = tf.nn.relu(tf.matmul(h_fc2, W_fc3) + b_fc3)
-
-  W_output = tf.Variable(tf.truncated_normal(shape=[256, 2], stddev=5e-2))
+  W_output = tf.Variable(tf.truncated_normal(shape=[1024, 2], stddev=5e-2))
   b_output = tf.Variable(tf.constant(0.1, shape=[2]))
 
-  logits = tf.matmul(h_fc3, W_output) + b_output
+  logits = tf.matmul(h_fc1, W_output) + b_output
 
 
   return logits
@@ -172,7 +157,7 @@ with tf.Session() as sess:
     else:
       print("저장된 가중치 파라미터가 없습니다.")
 
-  for i in range(1):
+  for i in range(10001):
 
     if ckpt_question in "y" or ckpt_question in "Y":
       break
